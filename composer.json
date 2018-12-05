@@ -1,0 +1,14 @@
+{
+	"name": "gozoro/jquery-ajaxform",
+	"description": "A jQuery plugin to submit forms with files via AJAX and to get a response with errors.",
+	"keywords": ["jQuery","submit", "ajax", "form", "ajaxform"],
+	"homepage": "https://github.com/gozoro/jquery-ajaxform",
+	"type": "plugin",
+	"license": "MIT",
+	"authors": [
+		{
+			"name": "Gozoro",
+			"email": "gozoro@yandex.ru"
+		}
+	]
+}
