@@ -12,41 +12,7 @@
 {
 
 	/**
-	 * Create FormData object from form
-	 * @return {FormData}
-	 */
-	$.fn.createFormData = function()
-	{
-		if(window.FormData !== undefined)
-		{
-			var fd = new FormData();
-
-			$.each(this.serializeArray(), function (i, input)
-			{
-				fd.append(input.name, input.value);
-			});
-
-			$.each(this.find("input[type='file']"), function(i, input_file)
-			{
-				$.each($(input_file)[0].files, function(i, file)
-				{
-					fd.append(input_file.name, file);
-				});
-			});
-		}
-		else
-		{
-			// Browser not supported FormData
-			var fd = undefined;
-		}
-
-		return fd;
-	};
-
-
-	/**
 	 * Bind an event handler to the "submitajax" plugin event, or trigger that event on an element.
-	 * If the browser does not support FormData, a POST request without files will be sent.
 	 *
 	 * @param {function} success
 	 * @return {this}
@@ -54,151 +20,184 @@
 	$.fn.submitAjax = function(success)
 	{
 		if(success)
-			return this.on('submitajax', success);
+			return $(this).on('submitajax', success);
 		else
-			return this.submit();
+			return $(this).submit();
 	}
 
 
-
-})(jQuery);
-
-
-
-
-
-$(document).ready(function()
-{
-	var event_name = "submitajax";
-
-
-	var input_reset = function($form, input)
+	$.fn.ajaxform = function()
 	{
-		var $input       = $(input);
-		var element      = $input.data('element');
-		var errorClass   = $input.data('error-class');
-		var errorElement = $input.data('error-element');
-		var errorAttr    = $input.data('error-attr');
+		var $ajaxform = this;
 
-		if(errorClass)
+		/**
+		 * Create FormData object from form
+		 * @return {FormData}
+		 */
+		var createFormData = function($form)
 		{
-			if(element)
+			if(window.FormData !== undefined)
 			{
-				$form.find(element).removeClass(errorClass);
-			}
-			else
-			{
-				$input.removeClass(errorClass);
-			}
-		}
+				var fd = new FormData();
 
-		if(errorAttr)
-		{
-			if(errorElement)
-			{
-				$form.find(errorElement).removeAttr(errorAttr);
-			}
-			else
-			{
-				$input.removeAttr(errorAttr);
-			}
-		}
-		else
-		{
-			if(errorElement)
-			{
-				$form.find(errorElement).html('');
-			}
-		}
-	}
-
-
-	$('form').on('submit', function(event)
-	{
-		var $form = $(this);
-		var via = $form.data('via');
-
-		if(/^ajax$/i.test(via))
-		{
-			var url = $form.attr('action');
-
-			if($form.find('input[type=file]').length)
-			{
-				if(window.FormData !== undefined)
+				$.each($form.serializeArray(), function (i, input)
 				{
+					fd.append(input.name, input.value);
+				});
 
-					event.preventDefault();
-					var data = $form.createFormData();
-
-					$.ajax({
-						url: url,
-						type: 'POST',
-						data: data,
-						processData: false,
-						contentType: false,
-						xhrFields: {
-							withCredentials: true
-						},
-						success: function(response, textStatus, jqXHR)
-						{
-							$form.trigger(event_name, [response, textStatus, jqXHR]);
-						}
+				$.each($form.find("input[type='file']"), function(i, input_file)
+				{
+					$.each($(input_file)[0].files, function(i, file)
+					{
+						fd.append(input_file.name, file);
 					});
+				});
+			}
+			else
+			{
+				// Browser not supported FormData
+				var fd = undefined;
+			}
 
+			return fd;
+		}
+
+
+		var resetInput = function(input)
+		{
+			var $input       = $(input);
+			var $form        = $input.parents('form');
+			var element      = $input.data('element');
+			var errorClass   = $input.data('error-class');
+			var errorElement = $input.data('error-element');
+			var errorAttr    = $input.data('error-attr');
+
+			if(errorClass)
+			{
+				if(element)
+				{
+					$form.find(element).removeClass(errorClass);
 				}
 				else
 				{
+					$input.removeClass(errorClass);
+				}
+			}
 
-					// Browser not supported FormData
-					// Use iframe transport
-
-					var iframe_id = 'ajaxformiframe';
-					var $iframe = $('<iframe name='+ iframe_id +' id="'+ iframe_id +'" width="0" height="0" frameborder="0" style="border:none;visibility:hidden;display:none;"></iframe>');
-
-					$form.append($iframe).attr('target',iframe_id);
-
-					$iframe.load(function()
-					{
-						var response = $iframe.contents().find('body').text();
-
-						try
-						{
-							var json = $.parseJSON(response);
-							$form.trigger(event_name, [json, 'success', null]);
-						}
-						catch(e)
-						{
-							$form.trigger(event_name, [response, 'success', null]);
-						}
-
-						// remove iframe
-						$form.removeAttr('target');
-						$iframe.contents().find('body').html('');
-						$iframe.unbind('load');
-						$iframe.remove();
-					});
-
+			if(errorAttr)
+			{
+				if(errorElement)
+				{
+					$form.find(errorElement).removeAttr(errorAttr);
+				}
+				else
+				{
+					$input.removeAttr(errorAttr);
 				}
 			}
 			else
 			{
-				event.preventDefault();
-				var data = $form.serializeArray();
-				$.post(url, data, function(response, textStatus, jqXHR)
+				if(errorElement)
 				{
-					$form.trigger(event_name, [response, textStatus, jqXHR]);
-				});
+					$form.find(errorElement).html('');
+				}
 			}
+		}
 
 
 
 
 
+		if(!$ajaxform.data('ajaxform'))
+		{
+			$ajaxform.data('ajaxform', '1');
 
 
-			/////////////////////////////////
-			$form.submitAjax(function(event, response)
+			// form submit handler
+			$ajaxform.on('submit.ajaxform', function(event)
 			{
+				var $form = $(this);
+				var event_name = "submitajax";
+				var url = $form.attr('action');
+
+
+				if($form.find('input[type=file]').length)
+				{
+					if(window.FormData !== undefined)
+					{
+
+						event.preventDefault();
+						var data = createFormData($form);
+
+						$.ajax({
+							url: url,
+							type: 'POST',
+							data: data,
+							processData: false,
+							contentType: false,
+							xhrFields: {
+								withCredentials: true
+							},
+							success: function(response, textStatus, jqXHR)
+							{
+								$form.trigger(event_name, [response, textStatus, jqXHR]);
+							}
+						});
+
+					}
+					else
+					{
+						// Browser not supported FormData
+						// Use iframe transport
+
+						var iframe_id = 'ajaxformiframe';
+						var $iframe = $('<iframe name='+ iframe_id +' id="'+ iframe_id +'" width="0" height="0" frameborder="0" style="border:none;visibility:hidden;display:none;"></iframe>');
+
+						$form.append($iframe).attr('target',iframe_id);
+
+						$iframe.load(function()
+						{
+							var response = $iframe.contents().find('body').text();
+
+							try
+							{
+								var json = $.parseJSON(response);
+								$form.trigger(event_name, [json, 'success', null]);
+							}
+							catch(e)
+							{
+								$form.trigger(event_name, [response, 'success', null]);
+							}
+
+							// remove iframe
+							$form.removeAttr('target');
+							$iframe.contents().find('body').html('');
+							$iframe.unbind('load');
+							$iframe.remove();
+						});
+
+					}
+				}
+				else
+				{
+					event.preventDefault();
+					var data = $form.serializeArray();
+					$.post(url, data, function(response, textStatus, jqXHR)
+					{
+						$form.trigger(event_name, [response, textStatus, jqXHR]);
+					});
+				}
+
+
+
+			});
+
+
+			// error handler //
+			$ajaxform.submitAjax(function(event, response)
+			{
+				var $form = $(this);
+
 				if(response.errors)
 				{
 					for(var field in response.errors)
@@ -246,21 +245,41 @@ $(document).ready(function()
 				}
 			});
 
-			$form.find(':input').change(function()
+
+			// input keyup handler //
+			$ajaxform.find(':input').keyup(function()
 			{
-				input_reset($form, this);
+				resetInput(this);
 			});
 
 
-
-			$form.on('reset',function()
+			// form reset handler
+			$ajaxform.on('reset',function()
 			{
-				$form.find(':input').each(function(i, input)
+				$(this).find(':input').each(function(i, input)
 				{
-					input_reset($form, input);
+					resetInput(input);
 				});
 			});
+		}
 
+		return this;
+	}
+
+})(jQuery);
+
+
+$(document).ready(function()
+{
+
+	$('form').each(function()
+	{
+		var $form = $(this);
+		var via = $form.data('via');
+
+		if(/^ajax$/i.test(via))
+		{
+			$form.ajaxform();
 		}
 	});
 
