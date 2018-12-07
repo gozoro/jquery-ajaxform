@@ -10,5 +10,8 @@
 			"name": "Gozoro",
 			"email": "gozoro@yandex.ru"
 		}
-	]
+	],
+	"require": {
+		"components/jquery": ">=1.7.0"
+	}
 }
