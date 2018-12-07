@@ -10,6 +10,7 @@
 
 (function($)
 {
+	'use strict';
 
 	/**
 	 * Bind an event handler to the "submitajax" plugin event, or trigger that event on an element.
@@ -29,6 +30,7 @@
 	$.fn.ajaxform = function()
 	{
 		var $ajaxform = this;
+		var event_name = "submitajax";
 
 		/**
 		 * Create FormData object from form
@@ -105,6 +107,142 @@
 		}
 
 
+		var submitHandler = function(event)
+		{
+			var $form = $(this);
+
+			var url = $form.attr('action');
+
+
+			if($form.find('input[type=file]').length)
+			{
+				if(window.FormData !== undefined)
+				{
+
+					event.preventDefault();
+					var data = createFormData($form);
+
+					$.ajax({
+						url: url,
+						type: 'POST',
+						data: data,
+						processData: false,
+						contentType: false,
+						xhrFields: {
+							withCredentials: true
+						},
+						success: function(response, textStatus, jqXHR)
+						{
+							$form.trigger(event_name, [response, textStatus, jqXHR]);
+						}
+					});
+
+				}
+				else
+				{
+					// Browser not supported FormData
+					// Use iframe transport
+
+					var iframe_id = 'ajaxformiframe';
+					var $iframe = $('<iframe name='+ iframe_id +' id="'+ iframe_id +'" width="0" height="0" frameborder="0" style="border:none;visibility:hidden;display:none;"></iframe>');
+
+					$form.append($iframe).attr('target',iframe_id);
+
+					$iframe.load(function()
+					{
+						var response = $iframe.contents().find('body').text();
+
+						try
+						{
+							var json = $.parseJSON(response);
+							$form.trigger(event_name, [json, 'success', null]);
+						}
+						catch(e)
+						{
+							$form.trigger(event_name, [response, 'success', null]);
+						}
+
+						// remove iframe
+						$form.removeAttr('target');
+						$iframe.contents().find('body').html('');
+						$iframe.unbind('load');
+						$iframe.remove();
+					});
+
+				}
+			}
+			else
+			{
+				event.preventDefault();
+				var data = $form.serializeArray();
+				$.post(url, data, function(response, textStatus, jqXHR)
+				{
+					$form.trigger(event_name, [response, textStatus, jqXHR]);
+				});
+			}
+		}
+
+
+
+		var errorHandler = function(event, response)
+		{
+			var $form = $(this);
+
+
+			if(response.errors)
+			{
+				for(var field in response.errors)
+				{
+					var $input = $form.find(':input[name='+field+']');
+					var errorMessage = response.errors[field];
+
+					var element      = $input.data('element');
+					var errorClass   = $input.data('error-class');
+					var errorElement = $input.data('error-element');
+					var errorAttr    = $input.data('error-attr');
+
+					if(errorClass)
+					{
+						if(element)
+						{
+							$form.find(element).addClass(errorClass);
+						}
+						else
+						{
+							$input.addClass(errorClass);
+						}
+					}
+
+
+					if(errorAttr)
+					{
+						if(errorElement)
+						{
+							$form.find(errorElement).attr(errorAttr, errorMessage);
+						}
+						else
+						{
+							$input.attr(errorAttr, errorMessage);
+						}
+					}
+					else
+					{
+						if(errorElement)
+						{
+							$form.find(errorElement).html(errorMessage);
+						}
+					}
+				}
+			}
+		}
+
+		var resetHandler = function()
+		{
+			$(this).find(':input').each(function(i, input)
+			{
+				resetInput(input);
+			});
+		}
 
 
 
@@ -112,155 +250,36 @@
 		{
 			$ajaxform.data('ajaxform', '1');
 
+			var selector = $ajaxform.selector; //this property was deprecated in jQuery 1.7
 
-			// form submit handler
-			$ajaxform.on('submit.ajaxform', function(event)
+			if(!selector)
 			{
-				var $form = $(this);
-				var event_name = "submitajax";
-				var url = $form.attr('action');
+				selector = $ajaxform.attr('id');
+				if(selector)
+					selector = '#'+selector;
+			}
 
-
-				if($form.find('input[type=file]').length)
-				{
-					if(window.FormData !== undefined)
-					{
-
-						event.preventDefault();
-						var data = createFormData($form);
-
-						$.ajax({
-							url: url,
-							type: 'POST',
-							data: data,
-							processData: false,
-							contentType: false,
-							xhrFields: {
-								withCredentials: true
-							},
-							success: function(response, textStatus, jqXHR)
-							{
-								$form.trigger(event_name, [response, textStatus, jqXHR]);
-							}
-						});
-
-					}
-					else
-					{
-						// Browser not supported FormData
-						// Use iframe transport
-
-						var iframe_id = 'ajaxformiframe';
-						var $iframe = $('<iframe name='+ iframe_id +' id="'+ iframe_id +'" width="0" height="0" frameborder="0" style="border:none;visibility:hidden;display:none;"></iframe>');
-
-						$form.append($iframe).attr('target',iframe_id);
-
-						$iframe.load(function()
-						{
-							var response = $iframe.contents().find('body').text();
-
-							try
-							{
-								var json = $.parseJSON(response);
-								$form.trigger(event_name, [json, 'success', null]);
-							}
-							catch(e)
-							{
-								$form.trigger(event_name, [response, 'success', null]);
-							}
-
-							// remove iframe
-							$form.removeAttr('target');
-							$iframe.contents().find('body').html('');
-							$iframe.unbind('load');
-							$iframe.remove();
-						});
-
-					}
-				}
-				else
-				{
-					event.preventDefault();
-					var data = $form.serializeArray();
-					$.post(url, data, function(response, textStatus, jqXHR)
-					{
-						$form.trigger(event_name, [response, textStatus, jqXHR]);
-					});
-				}
-
-
-
-			});
-
-
-			// error handler //
-			$ajaxform.submitAjax(function(event, response)
+			if(selector)
 			{
-				var $form = $(this);
+				// form delegate event handlers
+				$(document)
+						.on('submit.ajaxform', selector, submitHandler)
+						.on(event_name, selector, errorHandler)
+						.on('keyup change reset', selector+' :input', function(){resetInput(this)})
+						.on('reset', selector, resetHandler)
+						;
 
-				if(response.errors)
-				{
-					for(var field in response.errors)
-					{
-						var $input = $form.find(':input[name='+field+']');
-						var errorMessage = response.errors[field];
-
-						var element      = $input.data('element');
-						var errorClass   = $input.data('error-class');
-						var errorElement = $input.data('error-element');
-						var errorAttr    = $input.data('error-attr');
-
-						if(errorClass)
-						{
-							if(element)
-							{
-								$form.find(element).addClass(errorClass);
-							}
-							else
-							{
-								$input.addClass(errorClass);
-							}
-						}
-
-
-						if(errorAttr)
-						{
-							if(errorElement)
-							{
-								$form.find(errorElement).attr(errorAttr, errorMessage);
-							}
-							else
-							{
-								$input.attr(errorAttr, errorMessage);
-							}
-						}
-						else
-						{
-							if(errorElement)
-							{
-								$form.find(errorElement).html(errorMessage);
-							}
-						}
-					}
-				}
-			});
-
-
-			// input keyup handler //
-			$ajaxform.find(':input').keyup(function()
+			}
+			else
 			{
-				resetInput(this);
-			});
-
-
-			// form reset handler
-			$ajaxform.on('reset',function()
-			{
-				$(this).find(':input').each(function(i, input)
-				{
-					resetInput(input);
-				});
-			});
+				// form event handlers
+				$ajaxform
+						.on('submit.ajaxform', submitHandler)
+						.on(event_name, errorHandler)
+						.on('keyup change', ':input', function(){resetInput(this)})
+						.on('reset', resetHandler)
+						;
+			}
 		}
 
 		return this;
@@ -269,6 +288,7 @@
 })(jQuery);
 
 
+// run plugin for form with data-via="ajax"
 $(document).ready(function()
 {
 
