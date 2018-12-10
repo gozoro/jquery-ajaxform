@@ -2,12 +2,12 @@
 jquery-ajaxform
 ===============
 
- A jQuery plugin to submit forms with files via AJAX and to get a response with errors.
+ A jQuery plugin to submit form with files via AJAX and to get a response with errors.
  Browsers without FormData uses iframe transport to send files.
 
 
 `jquery-ajaxform` attaches callback hooks to a form's submit event.
-of a form send or a file upload.
+
 
 Requirements
 ------------
@@ -34,7 +34,7 @@ Reference the plugin and jQuery:
 
 Declare your form as usual:
 
-	<form id="myform" method="POST" action="/" enctype="multipart/form-data" data-via="ajax">
+	<form id="myform" method="POST" action="/" enctype="multipart/form-data" data-form="ajaxform">
 		<input name="name" id="name" type="text" />
 		<input name="files[] id="files" type="file" />
 		<input type="submit" />

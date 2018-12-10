@@ -244,63 +244,56 @@
 			});
 		}
 
-
-
-		if(!$ajaxform.data('ajaxform'))
+		// plugin init
+		var init = function()
 		{
-			$ajaxform.data('ajaxform', '1');
-
-			var selector = $ajaxform.selector; //this property was deprecated in jQuery 1.7
-
-			if(!selector)
+			if(!$ajaxform.data('ajaxform'))
 			{
-				selector = $ajaxform.attr('id');
+				$ajaxform.data('ajaxform', 1);
+
+				var selector = $ajaxform.selector; //this property was deprecated in jQuery 1.7
+
+				if(!selector)
+				{
+					selector = $ajaxform.attr('id');
+					if(selector)
+						selector = '#'+selector;
+				}
+
 				if(selector)
-					selector = '#'+selector;
-			}
+				{
+					// form delegate event handlers
+					$(document)
+							.on('submit.ajaxform', selector, submitHandler)
+							.on(event_name, selector, errorHandler)
+							.on('keyup change reset', selector+' :input', function(){resetInput(this)})
+							.on('reset', selector, resetHandler)
+							;
 
-			if(selector)
-			{
-				// form delegate event handlers
-				$(document)
-						.on('submit.ajaxform', selector, submitHandler)
-						.on(event_name, selector, errorHandler)
-						.on('keyup change reset', selector+' :input', function(){resetInput(this)})
-						.on('reset', selector, resetHandler)
-						;
-
+				}
+				else
+				{
+					// form event handlers
+					$ajaxform
+							.on('submit.ajaxform', submitHandler)
+							.on(event_name, errorHandler)
+							.on('keyup change', ':input', function(){resetInput(this)})
+							.on('reset', resetHandler)
+							;
+				}
 			}
-			else
-			{
-				// form event handlers
-				$ajaxform
-						.on('submit.ajaxform', submitHandler)
-						.on(event_name, errorHandler)
-						.on('keyup change', ':input', function(){resetInput(this)})
-						.on('reset', resetHandler)
-						;
-			}
-		}
+		};
 
-		return this;
+		init();
+
+		return $ajaxform;
 	}
 
 })(jQuery);
 
 
-// run plugin for form with data-via="ajax"
+// run plugin for form with data-form="ajaxform"
 $(document).ready(function()
 {
-
-	$('form').each(function()
-	{
-		var $form = $(this);
-		var via = $form.data('via');
-
-		if(/^ajax$/i.test(via))
-		{
-			$form.ajaxform();
-		}
-	});
-
+	$('form[data-form=ajaxform]').ajaxform();
 });
