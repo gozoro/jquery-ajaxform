@@ -193,7 +193,7 @@
 			{
 				for(var field in response.errors)
 				{
-					var $input = $form.find(':input[name='+field+']');
+					var $input = $form.find(':input[name='+field+'],:input[name^="'+field+'["]');
 					var errorMessage = response.errors[field];
 
 					var element      = $input.data('element');
