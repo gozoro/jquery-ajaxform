@@ -69,39 +69,44 @@
 		{
 			var $input       = $(input);
 			var $form        = $input.parents('form');
-			var element      = $input.data('element');
-			var errorClass   = $input.data('error-class');
-			var errorElement = $input.data('error-element');
-			var errorAttr    = $input.data('error-attr');
+
+			var elementSelector = $input.data('element');
+
+			if(elementSelector)
+			{
+				var $element = $form.find(elementSelector);
+			}
+			else
+			{
+				var $element = $input;
+			}
+
+			var errorElementSelector = $element.data('error-element');
+			var errorClass           = $element.data('error-class');
+			var errorAttr            = $element.data('error-attr');
+
 
 			if(errorClass)
 			{
-				if(element)
-				{
-					$form.find(element).removeClass(errorClass);
-				}
-				else
-				{
-					$input.removeClass(errorClass);
-				}
+				$element.removeClass(errorClass);
 			}
 
 			if(errorAttr)
 			{
-				if(errorElement)
+				if(errorElementSelector)
 				{
-					$form.find(errorElement).removeAttr(errorAttr);
+					$form.find(errorElementSelector).removeAttr(errorAttr);
 				}
 				else
 				{
-					$input.removeAttr(errorAttr);
+					$element.removeAttr(errorAttr);
 				}
 			}
 			else
 			{
-				if(errorElement)
+				if(errorElementSelector)
 				{
-					$form.find(errorElement).html('');
+					$form.find(errorElementSelector).html('');
 				}
 			}
 		}
@@ -196,40 +201,42 @@
 					var $input = $form.find(':input[name='+field+'],:input[name^="'+field+'["]');
 					var errorMessage = response.errors[field];
 
-					var element      = $input.data('element');
-					var errorClass   = $input.data('error-class');
-					var errorElement = $input.data('error-element');
-					var errorAttr    = $input.data('error-attr');
+					var elementSelector = $input.data('element');
+
+					if(elementSelector)
+					{
+						var $element = $form.find(elementSelector);
+					}
+					else
+					{
+						var $element = $input;
+					}
+
+					var errorElementSelector = $element.data('error-element');
+					var errorClass           = $element.data('error-class');
+					var errorAttr            = $element.data('error-attr');
 
 					if(errorClass)
 					{
-						if(element)
-						{
-							$form.find(element).addClass(errorClass);
-						}
-						else
-						{
-							$input.addClass(errorClass);
-						}
+						$element.addClass(errorClass);
 					}
-
 
 					if(errorAttr)
 					{
-						if(errorElement)
+						if(errorElementSelector)
 						{
-							$form.find(errorElement).attr(errorAttr, errorMessage);
+							$form.find(errorElementSelector).attr(errorAttr, errorMessage);
 						}
 						else
 						{
-							$input.attr(errorAttr, errorMessage);
+							$element.attr(errorAttr, errorMessage);
 						}
 					}
 					else
 					{
-						if(errorElement)
+						if(errorElementSelector)
 						{
-							$form.find(errorElement).html(errorMessage);
+							$form.find(errorElementSelector).html(errorMessage);
 						}
 					}
 				}
